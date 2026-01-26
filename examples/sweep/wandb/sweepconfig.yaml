@@ -28,7 +28,7 @@ parameters:
     values: [64, 128, 256]
 
   # algorithm hyperparameters 
-  algorithm.entropy_coef:
+  algorithm.entropy_coeff:
       max: 0.05
       min: 0
       distribution: uniform

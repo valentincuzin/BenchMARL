@@ -4,7 +4,7 @@
 #  LICENSE file in the root directory of this source tree.
 #
 
-from .common import _get_task_config_class, Task, TaskClass
+from .common import _get_task_config_class, Task, TaskClass, ExtractFrom
 
 from .magent.common import MAgentClass, MAgentTask
 from .meltingpot.common import MeltingPotClass, MeltingPotTask

@@ -21,6 +21,8 @@ from torch import Tensor
 
 from torchrl.data import Composite
 from torchrl.envs import EnvBase, RewardSum, Transform
+from functools import partial
+from benchmarl.environments.comm_transforms import ExtractFrom
 
 from benchmarl.utils import _read_yaml_config, DEVICE_TYPING
 
@@ -278,7 +280,9 @@ class TaskClass(abc.ABC):
 
 
         """
-        return []
+        get_pos = ExtractFrom(out_keys=[('agents', 'pos')], slices=slice(0, 2))
+        get_vel = ExtractFrom(out_keys=[('agents', 'vel')], slices=slice(2, 4))
+        return [get_pos, get_vel]
 
     def get_replay_buffer_transforms(self, env: EnvBase, group: str) -> List[Transform]:
         """

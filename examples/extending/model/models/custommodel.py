@@ -63,7 +63,7 @@ class CustomModel(Model):
         _ = self.share_params
 
         # This tells the model if it has full observability
-        # This will always be true when self.input_has_agent_dim==False
+        # This will always be true when self.Input_has_agent_dim==False
         # but in cases where the input has the agent dimension, this parameter is
         # used to distinguish between a decentralised model (where each agent's data
         # is processed separately) and a centralized model, where the model pools all data together

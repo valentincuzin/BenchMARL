@@ -31,8 +31,8 @@ class Mappo(Algorithm):
     Args:
         share_param_critic (bool): Whether to share the parameters of the critics withing agent groups
         clip_epsilon (scalar): weight clipping threshold in the clipped PPO loss equation.
-        entropy_coef (scalar): entropy multiplier when computing the total loss.
-        critic_coef (scalar): critic loss multiplier when computing the total
+        entropy_coeff (scalar): entropy multiplier when computing the total loss.
+        critic_coeff (scalar): critic loss multiplier when computing the total
         loss_critic_type (str): loss function for the value discrepancy.
             Can be one of "l1", "l2" or "smooth_l1".
         lmbda (float): The GAE lambda
@@ -50,8 +50,8 @@ class Mappo(Algorithm):
         self,
         share_param_critic: bool,
         clip_epsilon: float,
-        entropy_coef: bool,
-        critic_coef: float,
+        entropy_coeff: bool,
+        critic_coeff: float,
         loss_critic_type: str,
         lmbda: float,
         scale_mapping: str,
@@ -63,8 +63,8 @@ class Mappo(Algorithm):
 
         self.share_param_critic = share_param_critic
         self.clip_epsilon = clip_epsilon
-        self.entropy_coef = entropy_coef
-        self.critic_coef = critic_coef
+        self.entropy_coeff = entropy_coeff
+        self.critic_coeff = critic_coeff
         self.loss_critic_type = loss_critic_type
         self.lmbda = lmbda
         self.scale_mapping = scale_mapping
@@ -83,8 +83,8 @@ class Mappo(Algorithm):
             actor=policy_for_loss,
             critic=self.get_critic(group),
             clip_epsilon=self.clip_epsilon,
-            entropy_coef=self.entropy_coef,
-            critic_coef=self.critic_coef,
+            entropy_coeff=self.entropy_coeff,
+            critic_coeff=self.critic_coeff,
             loss_critic_type=self.loss_critic_type,
             normalize_advantage=False,
         )
@@ -325,8 +325,8 @@ class MappoConfig(AlgorithmConfig):
 
     share_param_critic: bool = MISSING
     clip_epsilon: float = MISSING
-    entropy_coef: float = MISSING
-    critic_coef: float = MISSING
+    entropy_coeff: float = MISSING
+    critic_coeff: float = MISSING
     loss_critic_type: str = MISSING
     lmbda: float = MISSING
     scale_mapping: str = MISSING
