@@ -1,5 +1,4 @@
 ## TODO List
-- [ ] Change the ExtractFrom Transform to move information instead of copy
 - [ ] Save logging in particular folder
 - [ ] Add Communication Environments (lbforaging, pp, pcp, TJ)
 - [ ] Extend GNN Module by overconfiguration, n_layers, Sequential Structure, node attributs...

@@ -25,6 +25,8 @@ class ExtractFrom(Transform):
         slices: slice | None = None,
         ):
         super().__init__(in_keys=in_keys, out_keys=out_keys)
+        self.slices = slices
+        self.out_size = self.slices.stop - self.slices.start
         self._keys_checked = False
 
     @property
@@ -47,7 +49,7 @@ class ExtractFrom(Transform):
     def out_keys(self) -> Sequence[NestedKey]:
         out_keys = self.__dict__.get("_out_keys", None)
         if out_keys in (None, []):
-            out_keys = [('agents', 'pos')]
+            out_keys = [('agents', 'extract')]
             self._out_keys = out_keys
         return out_keys
 
@@ -129,15 +131,14 @@ class ExtractFrom(Transform):
     def _reset(
         self, tensordict: TensorDictBase, tensordict_reset: TensorDictBase
     ) -> TensorDictBase:
-        """Resets episode position."""
+        """Resets episode."""
         for in_key, reset_key, out_key in _zip_strict(
             self.in_keys, self.reset_keys, self.out_keys
         ):
             _reset = _get_reset(reset_key, tensordict)
             value = tensordict.get(out_key, default=None)
             if value is None:
-                value = torch.zeros(self.parent.observation_spec[in_key].shape[:-1] + torch.Size([2]))
-
+                value = torch.zeros(self.parent.observation_spec[in_key].shape[:-1] + torch.Size([self.out_size]))
             else:
                 value = torch.where(expand_as_right(~_reset, value), value, 0.0)
             tensordict_reset.set(out_key, value)
@@ -146,12 +147,13 @@ class ExtractFrom(Transform):
     def _step(
         self, tensordict: TensorDictBase, next_tensordict: TensorDictBase
     ) -> TensorDictBase:
-        """Updates the episode pos with the step observation."""
-        # Update episode pos
+        """Updates the episode out with the step observation."""
+        # Update episode out
         for in_key, out_key in _zip_strict(self.in_keys, self.out_keys):
             if in_key in next_tensordict.keys(include_nested=True):
                 observation = next_tensordict.get(in_key)
-                next_tensordict.set(out_key, observation[..., :2])
+                extracted = observation[..., self.slices]
+                next_tensordict.set(out_key, extracted)
             elif not self.missing_tolerance:
                 raise KeyError(f"'{in_key}' not found in tensordict {tensordict}")
         return next_tensordict
@@ -160,12 +162,12 @@ class ExtractFrom(Transform):
         state_spec = input_spec["full_state_spec"]
         if state_spec is None:
             state_spec = Composite(shape=input_spec.shape, device=input_spec.device)
-        state_spec.update(self._generate_pos_spec())
+        state_spec.update(self._generate_out_spec())
         input_spec["full_state_spec"] = state_spec
         return input_spec
 
-    def _generate_pos_spec(self) -> Composite:
-        pos_spec = Composite()
+    def _generate_out_spec(self) -> Composite:
+        out_spec = Composite()
         obs_spec = self.parent.full_observation_spec
         observation_spec_keys = self.parent.observation_keys
         # Define episode specs for all out_keys
@@ -174,7 +176,7 @@ class ExtractFrom(Transform):
                 in_key in observation_spec_keys
             ):  # if this out_key has a corresponding key in obs_spec
                 out_key = _unravel_key_to_tuple(out_key)
-                temp_pos_spec = pos_spec
+                temp_out_spec = out_spec
                 temp_rew_spec = obs_spec
                 for sub_key in out_key[:-1]:
                     if (
@@ -182,22 +184,22 @@ class ExtractFrom(Transform):
                         or sub_key not in temp_rew_spec.keys()
                     ):
                         break
-                    if sub_key not in temp_pos_spec.keys():
-                        temp_pos_spec[sub_key] = temp_rew_spec[
+                    if sub_key not in temp_out_spec.keys():
+                        temp_out_spec[sub_key] = temp_rew_spec[
                             sub_key
                         ].empty()
                     temp_rew_spec = temp_rew_spec[sub_key]
-                    temp_pos_spec = temp_pos_spec[sub_key]
+                    temp_out_spec = temp_out_spec[sub_key]
 
-                pos_spec[out_key] = obs_spec[in_key].clone()
-                pos_spec[out_key].shape = pos_spec[out_key].shape[:-1] + torch.Size([2])
-                pos_spec[out_key].space.low = pos_spec[out_key].space.low[...,:2]
-                pos_spec[out_key].space.high = pos_spec[out_key].space.high[...,:2]
+                out_spec[out_key] = obs_spec[in_key].clone()
+                out_spec[out_key].shape = out_spec[out_key].shape[:-1] + torch.Size([self.out_size])
+                out_spec[out_key].space.low = out_spec[out_key].space.low[...,:self.out_size]
+                out_spec[out_key].space.high = out_spec[out_key].space.high[...,:self.out_size]
             else:
                 raise ValueError(
                     f"The in_key: {in_key} is not present in the observation spec {obs_spec}."
                 )
-        return pos_spec
+        return out_spec
 
     def transform_observation_spec(self, observation_spec: TensorSpec) -> TensorSpec:
         """Transforms the observation spec, adding the new keys generated by ExtractFrom."""
@@ -205,12 +207,12 @@ class ExtractFrom(Transform):
             observation_spec = Composite(
                 observation=observation_spec, shape=self.parent.batch_size
             )
-        observation_spec.update(self._generate_pos_spec())
+        observation_spec.update(self._generate_out_spec())
         return observation_spec
 
     def forward(self, tensordict: TensorDictBase) -> TensorDictBase:
         for in_key, out_key in _zip_strict(self.in_keys, self.out_keys):
             observation = tensordict[in_key]
-            pos = observation[..., :2]
-            tensordict.set(out_key, pos)
+            extracted = observation[..., self.slices]
+            tensordict.set(out_key, extracted)
         return tensordict

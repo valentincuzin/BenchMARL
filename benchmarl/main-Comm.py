@@ -18,13 +18,13 @@ if __name__ == "__main__":
 
     gat_module_config = GnnConfig(
         topology="from_pos",
-        self_loops=False,
+        self_loops=True,
         gnn_class=GATv2Conv,
         position_key="pos",
         pos_features=2,
         velocity_key="vel",
         vel_features=2,
-        exclude_pos_from_node_features=True,
+        exclude_pos_from_node_features=True,  # Always True, due to my Transform
         edge_radius=1,
     )
     gat_model_config = SequenceModelConfig([gat_module_config, MlpConfig.get_from_yaml()], [256])
