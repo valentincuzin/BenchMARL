@@ -38,4 +38,4 @@ if __name__ == "__main__":
         tasks=[navigation, joint_passage_size, transport],
         seeds={0, 1, 2}
     )
-    benchmark.run()
+    benchmark.run_sequential()
