@@ -1,10 +1,19 @@
 ## TODO List
-- [ ] Extend GNN Module by overconfiguration, n_layers, Sequential Structure, node attributs...
-- [ ] Implement DICG, MAGIC and CommFormer (without GNN method') with changing Experiments loop by Encoder -> Communication <-> Decoder -> Algo RL
-- [ ] Add Optuna File to tune a range of hyper-parameters, and change the Benchmark to add the option of Tunning before running
+- [ ] Implement GPPO/GAPPO
+	- [ ] write the algorithm (share the Communication_Module, then actor and critic)
+	- [ ] make it right
+	- [ ] enable multi-round of communication
+	- [ ] make it right
+- [ ] Find a possible abstract class of distributed communication
+- [ ] Implement a GRU version of GPPO
+	- [ ] GRU for local representation
+	- [ ] GRU after graph emb
+	- [ ] make it right (inspired by [DGCNs](https://arxiv.org/pdf/1704.06199))
+- [ ] Study Hyper-parameter settings (Add Optuna File to tune a range of hyperparameters, and alter the Benchmark to add the option of Tuning before running)
 - [ ] Rename BenchMARL as BenchMARL-Comm
-- [ ] Additionnal Usefull logging for seing Attention Comm, Dynamic CG, reward by Agents
+- [ ] Additional useful logging for seeing Attention Comm, Dynamic CG, reward by Agents
 - [ ] Communication-Constraint settings
+
 ## Install
 
 1. Need of python 3.11
