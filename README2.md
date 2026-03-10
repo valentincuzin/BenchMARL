@@ -1,6 +1,4 @@
 ## TODO List
-- [ ] Save logging in particular folder
-- [ ] Add Communication Environments (lbforaging, pp, pcp, TJ)
 - [ ] Extend GNN Module by overconfiguration, n_layers, Sequential Structure, node attributs...
 - [ ] Implement DICG, MAGIC and CommFormer (without GNN method') with changing Experiments loop by Encoder -> Communication <-> Decoder -> Algo RL
 - [ ] Add Optuna File to tune a range of hyper-parameters, and change the Benchmark to add the option of Tunning before running
