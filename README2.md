@@ -6,7 +6,7 @@
 - [ ] Add Optuna File to tune a range of hyper-parameters, and change the Benchmark to add the option of Tunning before running
 - [ ] Rename BenchMARL as BenchMARL-Comm
 - [ ] Additionnal Usefull logging for seing Attention Comm, Dynamic CG, reward by Agents
-
+- [ ] Communication-Constraint settings
 ## Install
 
 1. Need of python 3.11
