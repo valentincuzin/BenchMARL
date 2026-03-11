@@ -364,6 +364,63 @@ class Algorithm(ABC):
         return loss_vals
 
 
+class CommAlgorithm(Algorithm):
+    def __init__(self, experiment):
+        super().__init__(experiment)
+        assert hasattr(experiment, "comm_model_config"), (
+            "experiment must contain a communication model for setup the communication algorithm..."
+        )
+        self.comm_model_config = experiment.comm_model_config
+        self.has_rnn = self.has_rnn or self.comm_model_config.is_rnn
+
+    def get_policy_for_loss(self, group: str) -> TensorDictModule:
+        """
+        Get the non-explorative policy for a specific group loss.
+        This function calls the abstract :class:`~benchmarl.algorithms.Algorithm._get_policy_for_loss()` which needs to be implemented.
+        The function will cache the output at the first call and return the cached values in future calls.
+
+        Args:
+            group (str): agent group of the policy
+
+        Returns: TensorDictModule representing the policy
+        """
+        if group not in self._policies_for_loss.keys():
+            action_space = self.action_spec[group, "action"]
+            continuous = not isinstance(action_space, (Categorical, OneHot))
+            self._policies_for_loss.update(
+                {
+                    group: self._get_policy_for_loss(
+                        group=group,
+                        continuous=continuous,
+                        model_config=self.model_config,
+                        comm_model_config=self.comm_model_config,
+                    )
+                }
+            )
+        return self._policies_for_loss[group]
+
+    @abstractmethod
+    def _get_policy_for_loss(
+        self,
+        group: str,
+        model_config: ModelConfig,
+        comm_model_config: ModelConfig,
+        continuous: bool,
+    ) -> TensorDictModule:
+        """
+        Get the non-explorative policy for a specific group.
+
+        Args:
+            group (str): agent group of the policy
+            model_config (ModelConfig): model config class
+            comm_model_config (ModelConfig): communication model config class
+            continuous (bool): whether the policy should be continuous or discrete
+
+        Returns: TensorDictModule representing the policy
+        """
+        raise NotImplementedError
+
+
 @dataclass
 class AlgorithmConfig:
     """
@@ -459,6 +516,13 @@ class AlgorithmConfig:
     def has_independent_critic() -> bool:
         """
         If the algorithm uses an independent critic
+        """
+        return False
+
+    @staticmethod
+    def has_communication_process() -> bool:
+        """
+        If the algorithm uses any communication process
         """
         return False
 

@@ -16,6 +16,8 @@ from .masac import Masac, MasacConfig
 from .qmix import Qmix, QmixConfig
 from .vdn import Vdn, VdnConfig
 
+from .gppo import Gppo, GppoConfig
+
 classes = [
     "Iddpg",
     "IddpgConfig",
@@ -49,4 +51,5 @@ algorithm_config_registry = {
     "qmix": QmixConfig,
     "vdn": VdnConfig,
     "iql": IqlConfig,
+	"gppo": GppoConfig,
 }

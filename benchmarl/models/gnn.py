@@ -18,6 +18,7 @@ from tensordict import TensorDictBase
 from tensordict.utils import _unravel_key_to_tuple, NestedKey
 from torch import nn, Tensor
 
+from torchrl.modules import MultiAgentMLP
 from benchmarl.models.common import Model, ModelConfig
 
 _has_torch_geometric = importlib.util.find_spec("torch_geometric") is not None
@@ -122,6 +123,7 @@ class Gnn(Model):
 
     def __init__(
         self,
+        bandwidth: int,
         topology: str,
         self_loops: bool,
         gnn_class: Type[torch_geometric.nn.MessagePassing],
@@ -134,6 +136,7 @@ class Gnn(Model):
         vel_features: Optional[int],
         **kwargs,
     ):
+        self.bandwidth = bandwidth
         self.topology = topology
         self.self_loops = self_loops
         self.position_key = position_key
@@ -196,6 +199,18 @@ class Gnn(Model):
         )
         self._full_position_key = None
         self._full_velocity_key = None
+        # TODO ajouter le decodeur comme dans GPPO de base
+        # self.fc_dec = MultiAgentMLP(
+        #     n_agent_inputs=self.h_dim+self.input_spec.shape[-1],
+        #     n_agent_outputs=self.h_dim,
+        #     n_agents=self.n_agent,
+        #     centralised=False,  # the policies are decentralised (ie each agent will act from its observation)
+        #     share_params=self.share_param,
+        #     device=self.device,
+        #     depth=2,  # TODO parameter can be changed
+        #     num_cells=32,
+        #     activation_class=nn.Tanh,
+        # )
 
     def _perform_checks(self):
         super()._perform_checks()
@@ -334,7 +349,7 @@ class Gnn(Model):
 
         if not self.share_params:
             if not self.centralised:
-                res = torch.stack(
+                h = torch.stack(
                     [
                         gnn(**forward_gnn_params).view(
                             *batch_size,
@@ -346,7 +361,7 @@ class Gnn(Model):
                     dim=-2,
                 )
             else:
-                res = torch.stack(
+                h = torch.stack(
                     [
                         gnn(**forward_gnn_params)
                         .view(
@@ -361,12 +376,14 @@ class Gnn(Model):
                 )
 
         else:
-            res = self.gnns[0](**forward_gnn_params).view(
+            h = self.gnns[0](**forward_gnn_params).view(
                 *batch_size, self.n_agents, self.output_features
             )
             if self.centralised:
-                res = res.mean(dim=-2)  # Mean pooling
-
+                h = h.mean(dim=-2)  # Mean pooling
+        # TODO ajouter le décodeur, vérifier la shape de input, que input ne contiennent pas vel ou pos
+        h_x = torch.cat((h, input), dim=-1)
+        res = self.fc_dec(h_x)
         tensordict.set(self.out_key, res)
         return tensordict
 
@@ -464,7 +481,8 @@ def _batch_from_dense_to_ptg(
 @dataclass
 class GnnConfig(ModelConfig):
     """Dataclass config for a :class:`~benchmarl.models.Gnn`."""
-
+    
+    bandwidth: int = MISSING
     topology: str = MISSING
     self_loops: bool = MISSING
 

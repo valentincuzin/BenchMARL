@@ -21,11 +21,11 @@ from torchrl.modules import (
 )
 from torchrl.objectives import ClipPPOLoss, LossModule, ValueEstimators
 
-from benchmarl.algorithms.common import Algorithm, AlgorithmConfig
+from benchmarl.algorithms.common import Algorithm, CommAlgorithm, AlgorithmConfig
 from benchmarl.models.common import ModelConfig
 
 
-class Gppo(Algorithm):
+class Gppo(CommAlgorithm):
     """GPPO (from `https://github.com/proroklab/HetGPPO/blob/main/models/gppo.py`__).
 
     Args:
@@ -57,7 +57,7 @@ class Gppo(Algorithm):
         scale_mapping: str,
         use_tanh_normal: bool,
         minibatch_advantage: bool,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(**kwargs)
 
@@ -110,9 +110,35 @@ class Gppo(Algorithm):
         }
 
     def _get_policy_for_loss(
-        self, group: str, model_config: ModelConfig, continuous: bool
+        self, group: str, model_config: ModelConfig, comm_model_config: ModelConfig, continuous: bool
     ) -> TensorDictModule:
         n_agents = len(self.group_map[group])
+
+        comm_input_spec = Composite(
+            {group: self.observation_spec[group].clone().to(self.device)}
+        )
+
+        comm_output_spec = Composite(
+            {
+                group: Composite(
+                    {"comm_emb": Unbounded(shape=(n_agents, comm_model_config.bandwidth))},
+                    shape=(n_agents,),
+                )
+            }
+        )
+
+        comm_module = comm_model_config.get_model(
+            input_spec=comm_input_spec,
+            output_spec=comm_output_spec,
+            agent_group=group,
+            input_has_agent_dim=True,
+            n_agents=n_agents,
+            centralised=False,
+            share_params=self.experiment_config.share_policy_params,
+            device=self.device,
+            action_spec=self.action_spec,
+        )
+
         if continuous:
             logits_shape = list(self.action_spec[group, "action"].shape)
             logits_shape[-1] *= 2
@@ -121,9 +147,14 @@ class Gppo(Algorithm):
                 *self.action_spec[group, "action"].shape,
                 self.action_spec[group, "action"].space.n,
             ]
-
+        
         actor_input_spec = Composite(
-            {group: self.observation_spec[group].clone().to(self.device)}
+            {
+                group: Composite(
+                    {"comm_emb": Unbounded(shape=(n_agents, comm_model_config.bandwidth))},
+                    shape=(n_agents,),
+                )
+            }
         )
 
         actor_output_spec = Composite(
@@ -153,7 +184,7 @@ class Gppo(Algorithm):
                 out_keys=[(group, "loc"), (group, "scale")],
             )
             policy = ProbabilisticActor(
-                module=TensorDictSequential(actor_module, extractor_module),
+                module=TensorDictSequential(comm_module, actor_module, extractor_module),
                 spec=self.action_spec[group, "action"],
                 in_keys=[(group, "loc"), (group, "scale")],
                 out_keys=[(group, "action")],
@@ -175,7 +206,7 @@ class Gppo(Algorithm):
         else:
             if self.action_mask_spec is None:
                 policy = ProbabilisticActor(
-                    module=actor_module,
+                    module=TensorDictSequential(comm_module, actor_module),
                     spec=self.action_spec[group, "action"],
                     in_keys=[(group, "logits")],
                     out_keys=[(group, "action")],
@@ -185,7 +216,7 @@ class Gppo(Algorithm):
                 )
             else:
                 policy = ProbabilisticActor(
-                    module=actor_module,
+                     module=TensorDictSequential(comm_module, actor_module),
                     spec=self.action_spec[group, "action"],
                     in_keys={
                         "logits": (group, "logits"),
@@ -231,6 +262,11 @@ class Gppo(Algorithm):
                 nested_reward_key,
                 batch.get(("next", "reward")).unsqueeze(-1).expand((*group_shape, 1)),
             )
+
+        batch.set(
+            ("next", "agents", "comm_emb"),
+            batch.get(("agents", "comm_emb"))
+        )
 
         loss = self.get_loss_and_updater(group)[0]
         if self.minibatch_advantage:
@@ -285,21 +321,21 @@ class Gppo(Algorithm):
                 }
             )
 
-        if self.state_spec is not None:
-            input_has_agent_dim = False
-            critic_input_spec = self.state_spec
-
-        else:
-            input_has_agent_dim = True
-            critic_input_spec = Composite(
-                {group: self.observation_spec[group].clone().to(self.device)}
-            )
+        input_has_agent_dim = True
+        critic_input_spec = Composite(
+            {
+                group: Composite(
+                    {"comm_emb": Unbounded(shape=(n_agents, self.comm_model_config.bandwidth))},
+                    shape=(n_agents,),
+                )
+            }
+        )
 
         value_module = self.critic_model_config.get_model(
             input_spec=critic_input_spec,
             output_spec=critic_output_spec,
             n_agents=n_agents,
-            centralised=True,
+            centralised=False,
             input_has_agent_dim=input_has_agent_dim,
             agent_group=group,
             share_params=self.share_param_critic,
@@ -351,4 +387,8 @@ class GppoConfig(AlgorithmConfig):
 
     @staticmethod
     def has_centralized_critic() -> bool:
+        return False
+    
+    @staticmethod
+    def has_communication_process() -> bool:
         return True

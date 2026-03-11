@@ -1,5 +1,6 @@
 name: gnn
 
+bandwidth: 32
 topology: full
 self_loops: False
 

@@ -331,6 +331,7 @@ class Experiment(CallbackNotifier):
             an experiment with an on-policy algorithm.
         critic_model_config (ModelConfig, optional): the policy model configuration.
             If None, it defaults to model_config
+        comm_model_config (ModelConfig, optional): the communication model configuration.
         callbacks (list of Callback, optional): callbacks for this experiment
     """
 
@@ -342,6 +343,7 @@ class Experiment(CallbackNotifier):
         seed: int,
         config: ExperimentConfig,
         critic_model_config: Optional[ModelConfig] = None,
+        comm_model_config: Optional[ModelConfig] = None,
         callbacks: Optional[List[Callback]] = None,
     ):
         super().__init__(
@@ -366,6 +368,13 @@ class Experiment(CallbackNotifier):
         self.critic_model_config.is_critic = True
 
         self.algorithm_config = algorithm_config
+        self.comm_model_config = (
+            comm_model_config
+            if self.algorithm_config.has_communication_process()
+            and comm_model_config is not None
+            else None
+        )
+
         self.seed = seed
 
         self._setup()
@@ -396,7 +405,7 @@ class Experiment(CallbackNotifier):
         self._on_setup()
 
     def _perform_checks(self):
-        for config in (self.model_config, self.critic_model_config):
+        for config in (self.model_config, self.critic_model_config, self.comm_model_config):
             if isinstance(config, SequenceModelConfig):
                 for layer_config in config.model_configs[1:]:
                     if isinstance(layer_config, GnnConfig) and (
@@ -419,7 +428,7 @@ class Experiment(CallbackNotifier):
                 raise ValueError(
                     "GNNs in PPO critics with topology 'from_pos' are currently not available, "
                     "see https://github.com/pytorch/rl/issues/2537"
-                )
+                ) # TODO my implem potentially solve this issue
 
     def _set_action_type(self):
         if (
@@ -485,7 +494,11 @@ class Experiment(CallbackNotifier):
                 lambda: self.test_env, self.group_map, self.model_config
             )()
             env_func = _add_rnn_transforms(env_func, self.group_map, self.model_config)
-
+        if self.comm_model_config is not None and self.comm_model_config.is_rnn:
+            self.test_env = _add_rnn_transforms(
+                lambda: self.test_env, self.group_map, self.comm_model_config
+            )()
+            env_func = _add_rnn_transforms(env_func, self.group_map, self.comm_model_config)
         # Initialize train env
         if self.test_env.batch_size == ():
             # If the environment is not vectorized, we simulate vectorization using parallel or serial environments
@@ -572,6 +585,11 @@ class Experiment(CallbackNotifier):
         self.critic_model_name = (
             self.critic_model_config.associated_class().__name__.lower()
         )
+        if self.comm_model_config is not None:
+            self.comm_model_name = self.comm_model_config.associated_class().__name__.lower()
+        else:
+            self.comm_model_name = ''
+        
         self.environment_name = self.task.env_name().lower()
         self.task_name = self.task.name.lower()
         self._checkpointed_files = deque([])
@@ -595,7 +613,7 @@ class Experiment(CallbackNotifier):
 
         if self.config.restore_file is None:
             self.name = generate_exp_name(
-                f"{self.algorithm_name}_{self.task_name}_{self.model_name}", ""
+                f"{self.algorithm_name}_{self.task_name}_{self.comm_model_name}_{self.model_name}", ""
             )
             self.folder_name = save_folder / self.name
 
@@ -610,6 +628,7 @@ class Experiment(CallbackNotifier):
             pickle.dump(self.task.config if self.task.config is not None else {}, f)
             pickle.dump(self.algorithm_config, f)
             pickle.dump(self.model_config, f)
+            pickle.dump(self.comm_model_config if self.comm_model_config is not None else {}, f)
             pickle.dump(self.seed, f)
             pickle.dump(self.config, f)
             pickle.dump(self.critic_model_config, f)
@@ -631,6 +650,8 @@ class Experiment(CallbackNotifier):
             "environment_name": self.environment_name,
             "seed": self.seed,
         }
+        if self.comm_model_config is not None:
+            hparams_kwargs["comm_model_config"] = self.comm_model_config.__dict__
         self.logger = Logger(
             experiment_name=self.name,
             folder_name=str(self.folder_name),
@@ -1045,11 +1066,14 @@ class Experiment(CallbackNotifier):
             task_config = pickle.load(f)
             algorithm_config = pickle.load(f)
             model_config = pickle.load(f)
+            comm_model_config = pickle.load(f)
             seed = pickle.load(f)
             experiment_config = pickle.load(f)
             critic_model_config = pickle.load(f)
             callbacks = pickle.load(f)
         task.config = task_config
+        if not comm_model_config:
+            comm_model_config = None
         experiment_config.restore_file = restore_file
         if experiment_patch is not None:
             for key, value in experiment_patch.items():
@@ -1064,6 +1088,7 @@ class Experiment(CallbackNotifier):
             config=experiment_config,
             callbacks=callbacks,
             critic_model_config=critic_model_config,
+            comm_model_config=comm_model_config
         )
         print(f"\nReloaded experiment {experiment.name} from {restore_file}.")
         return experiment
