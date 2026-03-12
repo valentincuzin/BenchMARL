@@ -8,7 +8,7 @@ from torch_geometric.nn import GATv2Conv
 
 if __name__ == "__main__":
     algorithm_config = GppoConfig.get_from_yaml()
-    algorithm_config.share_param_critic = False # TODO bug with sharing critic weights
+    algorithm_config.share_param_critic = False
     experiment_config = ExperimentConfig.get_from_yaml()
     experiment_config.share_policy_params = True
 
@@ -25,7 +25,6 @@ if __name__ == "__main__":
         pos_features=2,
         velocity_key="vel",
         vel_features=2,
-        exclude_pos_from_node_features=True,  # Always True, due to my Transform
         edge_radius=1,
     )
 

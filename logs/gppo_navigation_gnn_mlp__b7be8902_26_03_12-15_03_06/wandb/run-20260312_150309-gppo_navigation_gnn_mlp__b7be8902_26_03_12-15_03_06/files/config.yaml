@@ -1,0 +1,188 @@
+_wandb:
+    value:
+        cli_version: 0.23.1
+        e:
+            r568j0joc7x64e7qgfq7ixx8v0curg77:
+                codePath: benchmarl/main-Comm.py
+                codePathLocal: benchmarl/main-Comm.py
+                cpu_count: 16
+                cpu_count_logical: 16
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "509999996928"
+                        used: "106902814720"
+                email: valentin.cuizine@gmail.com
+                executable: /home/val/miniconda3/envs/p311/bin/python
+                git:
+                    commit: f0e2248a6e961040ee4acd7267dd83e6ca2a420b
+                    remote: git@github.com:valentincuzin/BenchMARL.git
+                gpu: NVIDIA RTX PRO 1000 Blackwell Generation Laptop GPU
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Blackwell
+                      cudaCores: 2560
+                      memoryTotal: "8546942976"
+                      name: NVIDIA RTX PRO 1000 Blackwell Generation Laptop GPU
+                      uuid: GPU-124f767b-39e6-263b-7436-ce534ded84b9
+                host: fedora
+                memory:
+                    total: "16175771648"
+                os: Linux-6.19.6-200.fc43.x86_64-x86_64-with-glibc2.42
+                program: /home/val/Repo/BenchMARL/benchmarl/main-Comm.py
+                python: CPython 3.11.14
+                root: logs/gppo_navigation_gnn_mlp__b7be8902_26_03_12-15_03_06
+                startedAt: "2026-03-12T14:03:09.390791Z"
+                writerId: r568j0joc7x64e7qgfq7ixx8v0curg77
+        m: []
+        python_version: 3.11.14
+        t:
+            "1":
+                - 1
+                - 50
+                - 77
+                - 105
+            "2":
+                - 1
+                - 50
+                - 77
+                - 105
+            "3":
+                - 2
+                - 13
+                - 14
+                - 16
+            "4": 3.11.14
+            "5": 0.23.1
+            "12": 0.23.1
+            "13": linux-x86_64
+algorithm_config:
+    value:
+        clip_epsilon: 0.2
+        critic_coeff: 1
+        entropy_coeff: 0
+        lmbda: 0.9
+        loss_critic_type: l2
+        minibatch_advantage: false
+        scale_mapping: biased_softplus_1.0
+        share_param_critic: false
+        use_tanh_normal: true
+algorithm_name:
+    value: gppo
+comm_model_config:
+    value:
+        _is_critic: false
+        bandwidth: 32
+        edge_radius: 1
+        exclude_pos_from_node_features: false
+        gnn_class: torch_geometric.nn.conv.gatv2_conv.GATv2Conv
+        gnn_kwargs: null
+        pos_features: 2
+        position_key: pos
+        self_loops: true
+        topology: from_pos
+        vel_features: 2
+        velocity_key: vel
+continuous_actions:
+    value: true
+critic_model_config:
+    value:
+        _is_critic: true
+        activation_class: torch.nn.modules.activation.Tanh
+        activation_kwargs: null
+        layer_class: torch.nn.modules.linear.Linear
+        norm_class: null
+        norm_kwargs: null
+        num_cells:
+            - 256
+            - 256
+        num_feature_dims: 1
+critic_model_name:
+    value: mlp
+environment_name:
+    value: vmas
+experiment_config:
+    value:
+        adam_eps: 1e-06
+        buffer_device: cuda
+        checkpoint_at_end: false
+        checkpoint_interval: 0
+        clip_grad_norm: true
+        clip_grad_val: 5
+        collect_with_grad: false
+        create_json: true
+        evaluation: true
+        evaluation_deterministic_actions: true
+        evaluation_episodes: 10
+        evaluation_interval: 120000
+        evaluation_static: false
+        exclude_buffer_from_checkpoint: false
+        exploration_anneal_frames: null
+        exploration_eps_end: 0.01
+        exploration_eps_init: 0.8
+        gamma: 0.99
+        hard_target_update_frequency: 5
+        keep_checkpoints_num: 3
+        loggers:
+            - csv
+            - wandb
+        lr: 5e-05
+        max_n_frames: 3000000
+        max_n_iters: null
+        off_policy_collected_frames_per_batch: 6000
+        off_policy_init_random_frames: 0
+        off_policy_memory_size: 1000000
+        off_policy_n_envs_per_worker: 10
+        off_policy_n_optimizer_steps: 1000
+        off_policy_prb_alpha: 0.6
+        off_policy_prb_beta: 0.4
+        off_policy_train_batch_size: 128
+        off_policy_use_prioritized_replay_buffer: false
+        on_policy_collected_frames_per_batch: 6000
+        on_policy_minibatch_size: 400
+        on_policy_n_envs_per_worker: 10
+        on_policy_n_minibatch_iters: 45
+        parallel_collection: false
+        polyak_tau: 0.005
+        prefer_continuous_actions: true
+        project_name: benchmarl
+        render: true
+        restore_file: null
+        restore_map_location: null
+        sampling_device: cuda
+        save_folder: ./logs
+        share_policy_params: true
+        soft_target_update: true
+        train_device: cuda
+model_config:
+    value:
+        _is_critic: false
+        activation_class: torch.nn.modules.activation.Tanh
+        activation_kwargs: null
+        layer_class: torch.nn.modules.linear.Linear
+        norm_class: null
+        norm_kwargs: null
+        num_cells:
+            - 256
+            - 256
+        num_feature_dims: 1
+model_name:
+    value: mlp
+on_policy:
+    value: true
+seed:
+    value: 0
+task_config:
+    value:
+        agent_radius: 0.1
+        agents_with_same_goal: 1
+        collisions: true
+        comms_range: 1
+        lidar_range: 0.2
+        max_steps: 100
+        n_agents: 4
+        observe_all_goals: false
+        shared_rew: false
+        split_goals: false
+task_name:
+    value: navigation

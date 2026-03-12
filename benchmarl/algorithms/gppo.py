@@ -309,17 +309,14 @@ class Gppo(CommAlgorithm):
 
     def get_critic(self, group: str) -> TensorDictModule:
         n_agents = len(self.group_map[group])
-        if self.share_param_critic:
-            critic_output_spec = Composite({"state_value": Unbounded(shape=(1,))})
-        else:
-            critic_output_spec = Composite(
-                {
-                    group: Composite(
-                        {"state_value": Unbounded(shape=(n_agents, 1))},
-                        shape=(n_agents,),
-                    )
-                }
-            )
+        critic_output_spec = Composite(
+            {
+                group: Composite(
+                    {"state_value": Unbounded(shape=(n_agents, 1))},
+                    shape=(n_agents,),
+                )
+            }
+        )
 
         input_has_agent_dim = True
         critic_input_spec = Composite(

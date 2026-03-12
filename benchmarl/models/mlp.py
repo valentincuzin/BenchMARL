@@ -112,7 +112,6 @@ class Mlp(Model):
                     "If the MLP input has the agent dimension,"
                     f" the second to last spec dimension should be the number of agents, got {self.input_spec}"
                 )
-        print("output_leaf:", self.output_leaf_spec)
         if (
             self.output_has_agent_dim
             and self.output_leaf_spec.shape[-2] != self.n_agents

@@ -57,7 +57,6 @@ class ExtractFrom(Transform):
     def out_keys(self, value):
         # we must access the private attribute because this check occurs before
         # the parent env is defined
-        print(self._in_keys, value)
         if value is not None and len(self._in_keys) != len(value):
             raise ValueError(
                 f"ExtractFrom expects the same number of input {self._in_keys} and output keys {value}"

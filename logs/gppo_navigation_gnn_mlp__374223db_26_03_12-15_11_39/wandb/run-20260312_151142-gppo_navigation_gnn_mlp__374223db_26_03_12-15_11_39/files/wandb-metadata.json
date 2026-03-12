@@ -1,0 +1,40 @@
+{
+  "os":  "Linux-6.19.6-200.fc43.x86_64-x86_64-with-glibc2.42",
+  "python":  "CPython 3.11.14",
+  "startedAt":  "2026-03-12T14:11:42.115114Z",
+  "program":  "/home/val/Repo/BenchMARL/benchmarl/main-Comm.py",
+  "codePath":  "benchmarl/main-Comm.py",
+  "codePathLocal":  "benchmarl/main-Comm.py",
+  "git":  {
+    "remote":  "git@github.com:valentincuzin/BenchMARL.git",
+    "commit":  "f0e2248a6e961040ee4acd7267dd83e6ca2a420b"
+  },
+  "email":  "valentin.cuizine@gmail.com",
+  "root":  "logs/gppo_navigation_gnn_mlp__374223db_26_03_12-15_11_39",
+  "host":  "fedora",
+  "executable":  "/home/val/miniconda3/envs/p311/bin/python",
+  "cpu_count":  16,
+  "cpu_count_logical":  16,
+  "gpu":  "NVIDIA RTX PRO 1000 Blackwell Generation Laptop GPU",
+  "gpu_count":  1,
+  "disk":  {
+    "/":  {
+      "total":  "509999996928",
+      "used":  "106903973888"
+    }
+  },
+  "memory":  {
+    "total":  "16175771648"
+  },
+  "gpu_nvidia":  [
+    {
+      "name":  "NVIDIA RTX PRO 1000 Blackwell Generation Laptop GPU",
+      "memoryTotal":  "8546942976",
+      "cudaCores":  2560,
+      "architecture":  "Blackwell",
+      "uuid":  "GPU-124f767b-39e6-263b-7436-ce534ded84b9"
+    }
+  ],
+  "cudaVersion":  "13.0",
+  "writerId":  "xrj62io4i41k0vahj511kv6k9sqa8ljm"
+}

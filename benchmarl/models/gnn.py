@@ -129,7 +129,6 @@ class Gnn(Model):
         gnn_class: Type[torch_geometric.nn.MessagePassing],
         gnn_kwargs: Optional[dict],
         position_key: Optional[str],
-        exclude_pos_from_node_features: Optional[bool],
         velocity_key: Optional[str],
         edge_radius: Optional[float],
         pos_features: Optional[int],
@@ -141,7 +140,6 @@ class Gnn(Model):
         self.self_loops = self_loops
         self.position_key = position_key
         self.velocity_key = velocity_key
-        self.exclude_pos_from_node_features = exclude_pos_from_node_features
         self.edge_radius = edge_radius
         self.pos_features = pos_features
         self.vel_features = vel_features
@@ -149,7 +147,7 @@ class Gnn(Model):
         super().__init__(**kwargs)
 
         if self.pos_features > 0:
-            self.pos_features += 1  # We will add also 1-dimensional distance
+            self.pos_features += 1  # We will add also 1-dimensional distance (that is note taking in input_features)
         self.edge_features = self.pos_features + self.vel_features
         self.input_features = sum(
             [
@@ -158,20 +156,18 @@ class Gnn(Model):
                 if _unravel_key_to_tuple(key)[-1] not in (position_key, velocity_key)
             ]
         )  # Input keys
-        if self.position_key is not None and not self.exclude_pos_from_node_features:
-            self.input_features += self.pos_features - 1
-        if self.velocity_key is not None:
-            self.input_features += self.vel_features
-
         self.output_features = self.output_leaf_spec.shape[-1]
+
+        self.gnn_supports_edge_attrs = (
+            "edge_dim" in inspect.getfullargspec(gnn_class).args
+        )
+        if self.gnn_supports_edge_attrs:
+            self.input_features += 1 - self.pos_features
 
         if gnn_kwargs is None:
             gnn_kwargs = {}
         gnn_kwargs.update(
             {"in_channels": self.input_features, "out_channels": self.output_features}
-        )
-        self.gnn_supports_edge_attrs = (
-            "edge_dim" in inspect.getfullargspec(gnn_class).args
         )
         if (
             self.position_key is not None or self.velocity_key is not None
@@ -199,18 +195,17 @@ class Gnn(Model):
         )
         self._full_position_key = None
         self._full_velocity_key = None
-        # TODO ajouter le decodeur comme dans GPPO de base
-        # self.fc_dec = MultiAgentMLP(
-        #     n_agent_inputs=self.h_dim+self.input_spec.shape[-1],
-        #     n_agent_outputs=self.h_dim,
-        #     n_agents=self.n_agent,
-        #     centralised=False,  # the policies are decentralised (ie each agent will act from its observation)
-        #     share_params=self.share_param,
-        #     device=self.device,
-        #     depth=2,  # TODO parameter can be changed
-        #     num_cells=32,
-        #     activation_class=nn.Tanh,
-        # )
+        self.fc_dec = MultiAgentMLP(
+            n_agent_inputs=self.output_features+self.input_features,
+            n_agent_outputs=self.output_features,
+            n_agents=self.n_agents,
+            centralised=False,  # fixed
+            share_params=self.share_params,
+            device=self.device,
+            depth=1,
+            num_cells=self.output_features,
+            activation_class=nn.ReLU,
+        )
 
     def _perform_checks(self):
         super()._perform_checks()
@@ -221,13 +216,6 @@ class Gnn(Model):
             )
         if self.topology == "from_pos" and self.position_key is None:
             raise ValueError("If topology is from_pos, position_key must be provided")
-        if (
-            self.position_key is not None
-            and self.exclude_pos_from_node_features is None
-        ):
-            raise ValueError(
-                "exclude_pos_from_node_features needs to be specified when position_key is provided"
-            )
         if self.position_key is not None and self.pos_features <= 0:
             raise ValueError(
                 f"Position key specified but pos_features is {self.pos_features}"
@@ -304,8 +292,6 @@ class Gnn(Model):
                     )
             else:
                 pos = tensordict.get(self._full_position_key)
-            if not self.exclude_pos_from_node_features:
-                input.append(pos)
         else:
             pos = None
 
@@ -323,11 +309,11 @@ class Gnn(Model):
                     )
             else:
                 vel = tensordict.get(self._full_velocity_key)
-            input.append(vel)
         else:
             vel = None
-
         input = torch.cat(input, dim=-1)
+        if self.gnn_supports_edge_attrs:
+            input = input[..., 2:]
         batch_size = input.shape[:-2]
 
         graph = _batch_from_dense_to_ptg(
@@ -381,7 +367,6 @@ class Gnn(Model):
             )
             if self.centralised:
                 h = h.mean(dim=-2)  # Mean pooling
-        # TODO ajouter le décodeur, vérifier la shape de input, que input ne contiennent pas vel ou pos
         h_x = torch.cat((h, input), dim=-1)
         res = self.fc_dec(h_x)
         tensordict.set(self.out_key, res)
@@ -493,7 +478,6 @@ class GnnConfig(ModelConfig):
     pos_features: Optional[int] = 0
     velocity_key: Optional[str] = None
     vel_features: Optional[int] = 0
-    exclude_pos_from_node_features: Optional[bool] = None
     edge_radius: Optional[float] = None
 
     @staticmethod
