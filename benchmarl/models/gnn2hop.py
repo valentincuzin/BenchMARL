@@ -20,8 +20,7 @@ from torch import nn, Tensor
 
 from torchrl.modules import MultiAgentMLP
 from benchmarl.models.common import Model, ModelConfig
-from benchmarl.models.GNN_encoder import GNNMultiHop
-
+from benchmarl.models.GNN_encoder import Multi-hop
 _has_torch_geometric = importlib.util.find_spec("torch_geometric") is not None
 if _has_torch_geometric:
     import torch_geometric
@@ -50,7 +49,7 @@ if _has_torch_geometric:
 TOPOLOGY_TYPES = {"full", "empty", "from_pos"}
 
 
-class Gnn(Model):
+class Gnn2Hop(Model):
     """A GNN model.
 
     GNN models can be used as "decentralized" actors or critics.
@@ -190,7 +189,7 @@ class Gnn(Model):
 
         self.gnns = nn.ModuleList(
             [
-                GNNMultiHop(gnn_kwargs, params).to(self.device)
+                gnn_class(**gnn_kwargs).to(self.device)
                 for _ in range(self.n_agents if not self.share_params else 1)
             ]
         )
@@ -471,7 +470,7 @@ def _batch_from_dense_to_ptg(
 
 
 @dataclass
-class GnnConfig(ModelConfig):
+class Gnn2HopConfig(ModelConfig):
     """Dataclass config for a :class:`~benchmarl.models.Gnn`."""
     
     bandwidth: int = MISSING

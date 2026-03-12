@@ -4,11 +4,11 @@ from benchmarl.experiment import ExperimentConfig
 from benchmarl.benchmark import Benchmark
 from benchmarl.models import MlpConfig, GnnConfig, SequenceModelConfig
 
-from torch_geometric.nn import GATv2Conv
+from torch_geometric.nn import GATv2Conv, GCNConv
 
 if __name__ == "__main__":
     algorithm_config = GppoConfig.get_from_yaml()
-    algorithm_config.share_param_critic = False
+    algorithm_config.share_param_critic = False  # TODO fix shared critic in GPPO case which is DTDE
     experiment_config = ExperimentConfig.get_from_yaml()
     experiment_config.share_policy_params = True
 
@@ -20,7 +20,7 @@ if __name__ == "__main__":
         bandwidth=32,
         topology="from_pos",
         self_loops=True,
-        gnn_class=GATv2Conv,
+        gnn_class=GCNConv,
         position_key="pos",
         pos_features=2,
         velocity_key="vel",

@@ -2,7 +2,7 @@
 - [/] Implement GPPO/GAPPO
 	- [X] write the algorithm (share the Communication_Module, then actor and critic)
 	- [X] make it right
-	- [ ] enable multi-round of communication
+	- [/] enable multi-round of communication
 	- [ ] make it right
 - [X] Find a possible abstract class of distributed communication
 - [ ] Implement a GRU version of GPPO
