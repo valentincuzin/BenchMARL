@@ -309,20 +309,19 @@ class Gppo(CommAlgorithm):
 
     def get_critic(self, group: str) -> TensorDictModule:
         n_agents = len(self.group_map[group])
-        critic_output_spec = Composite(
-            {
-                group: Composite(
-                    {"state_value": Unbounded(shape=(n_agents, 1))},
-                    shape=(n_agents,),
-                )
-            }
-        )
 
-        input_has_agent_dim = True
         critic_input_spec = Composite(
             {
                 group: Composite(
                     {"comm_emb": Unbounded(shape=(n_agents, self.comm_model_config.bandwidth))},
+                    shape=(n_agents,),
+                )
+            }
+        )
+        critic_output_spec = Composite(
+            {
+                group: Composite(
+                    {"state_value": Unbounded(shape=(n_agents, 1))},
                     shape=(n_agents,),
                 )
             }
@@ -333,21 +332,12 @@ class Gppo(CommAlgorithm):
             output_spec=critic_output_spec,
             n_agents=n_agents,
             centralised=False,
-            input_has_agent_dim=input_has_agent_dim,
+            input_has_agent_dim=True,
             agent_group=group,
             share_params=self.share_param_critic,
             device=self.device,
             action_spec=self.action_spec,
         )
-        if self.share_param_critic:
-            expand_module = TensorDictModule(
-                lambda value: value.unsqueeze(-2).expand(
-                    *value.shape[:-1], n_agents, 1
-                ),
-                in_keys=["state_value"],
-                out_keys=[(group, "state_value")],
-            )
-            value_module = TensorDictSequential(value_module, expand_module)
 
         return value_module
 

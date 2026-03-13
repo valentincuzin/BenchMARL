@@ -20,7 +20,7 @@ from torch import nn, Tensor
 
 from torchrl.modules import MultiAgentMLP
 from benchmarl.models.common import Model, ModelConfig
-from benchmarl.models.GNN_encoder import Multi-hop
+from benchmarl.models.GNN_encoder import GNNMultiHop
 _has_torch_geometric = importlib.util.find_spec("torch_geometric") is not None
 if _has_torch_geometric:
     import torch_geometric

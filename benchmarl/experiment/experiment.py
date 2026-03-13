@@ -613,7 +613,7 @@ class Experiment(CallbackNotifier):
 
         if self.config.restore_file is None:
             self.name = generate_exp_name(
-                f"{self.algorithm_name}_{self.task_name}_{self.comm_model_name}_{self.model_name}", ""
+                f"log_{self.algorithm_name}_{self.task_name}_{self.comm_model_name}_{self.model_name}", ""
             )
             self.folder_name = save_folder / self.name
 

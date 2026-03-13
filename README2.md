@@ -1,9 +1,9 @@
 ## TODO List
-- [/] Implement GPPO/GAPPO
+- [X] Implement GPPO
 	- [X] write the algorithm (share the Communication_Module, then actor and critic)
 	- [X] make it right
-	- [/] enable multi-round of communication
-	- [ ] make it right
+	- [X] enable multi-round of communication
+	- [X] make it right
 - [X] Find a possible abstract class of distributed communication
 - [ ] Implement a GRU version of GPPO
 	- [ ] GRU for local representation

@@ -3,29 +3,40 @@ import torch.nn as nn
 from torch_geometric.nn import MessagePassing, LayerNorm, Sequential
 
 class GNNMultiHop(nn.Module):
-    def __init__(self, gnn_kwargs, param):
+    def __init__(self, gnn_kwargs, model_params):
         super().__init__()
-        layer_sizes = param["layer_sizes"]
-        weight_standardization = param["weight_standardization"]
-        base_model = param["base_model"]
+        layer_sizes = model_params["layer_sizes"]
+        weight_standardization = model_params["weight_standardization"]
+        base_model = model_params["base_model"]
         assert len(layer_sizes) >= 1
-        self.input_size, self.representation_size = gnn_kwargs["in_channels"], layer_sizes[-1]
+        self.input_size, self.representation_size = (
+            gnn_kwargs["in_channels"],
+            layer_sizes[-1],
+        )
+        self.edge_dim = gnn_kwargs.get("edge_dim", None)
         layer_sizes.insert(0, gnn_kwargs["in_channels"])
-        # self.edge_dim = gnn_kwargs["edge_dim"]  # TODO gérér les paramètre et la edge dim correctement
         self.weight_standardization = weight_standardization
 
         layers = []
         for in_dim, out_dim in zip(layer_sizes[:-1], layer_sizes[1:]):
-            layers.append((base_model(in_dim, out_dim), "x, edge_index -> x"))
+            gnn_kwarg = {"in_channels": in_dim, "out_channels": out_dim}
+            if self.edge_dim is not None:
+                gnn_kwarg.update({"edge_dim": self.edge_dim})
+            layers.append(
+                (base_model(**gnn_kwarg), "x, edge_index -> x")
+            )
             layers.append(LayerNorm(out_dim))
             layers.append(nn.PReLU())
         print(layers)
         self.model = Sequential("x, edge_index", layers)
 
-    def forward(self, x, edge_index):
+    def forward(self, x, edge_index, edge_attr=None):
         if self.weight_standardization:
             self.standardize_weights()
-        return self.model(x, edge_index)
+        if edge_attr is None:
+            return self.model(x, edge_index)
+        
+        return self.model(x, edge_index, edge_attr)
 
     def reset_parameters(self):
         self.model.reset_parameters()

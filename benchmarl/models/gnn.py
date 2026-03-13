@@ -13,6 +13,7 @@ from dataclasses import dataclass, MISSING
 from math import prod
 from typing import List, Optional, Type
 
+from click import Option
 import torch
 from tensordict import TensorDictBase
 from tensordict.utils import _unravel_key_to_tuple, NestedKey
@@ -128,6 +129,7 @@ class Gnn(Model):
         topology: str,
         self_loops: bool,
         gnn_class: Type[torch_geometric.nn.MessagePassing],
+        L_layers:int,
         gnn_kwargs: Optional[dict],
         position_key: Optional[str],
         velocity_key: Optional[str],
@@ -144,6 +146,7 @@ class Gnn(Model):
         self.edge_radius = edge_radius
         self.pos_features = pos_features
         self.vel_features = vel_features
+        self.L_layers = L_layers
 
         super().__init__(**kwargs)
 
@@ -181,16 +184,17 @@ class Gnn(Model):
             position_key is not None or velocity_key is not None
         ) and self.gnn_supports_edge_attrs:
             gnn_kwargs.update({"edge_dim": self.edge_features})
-
-        params = {
-            "layer_sizes": [self.output_features*2, self.output_features],
+        layer_sizes = [self.output_features*2 for _ in range(L_layers-1)]
+        layer_sizes.append(self.output_features)
+        model_params = {
+            "layer_sizes": layer_sizes,
             "base_model": gnn_class,
             "weight_standardization": False,
         }
 
         self.gnns = nn.ModuleList(
             [
-                GNNMultiHop(gnn_kwargs, params).to(self.device)
+                GNNMultiHop(gnn_kwargs, model_params).to(self.device)
                 for _ in range(self.n_agents if not self.share_params else 1)
             ]
         )
@@ -477,6 +481,7 @@ class GnnConfig(ModelConfig):
     bandwidth: int = MISSING
     topology: str = MISSING
     self_loops: bool = MISSING
+    L_layers: int = MISSING
 
     gnn_class: Type[torch_geometric.nn.MessagePassing] = MISSING
     gnn_kwargs: Optional[dict] = None
